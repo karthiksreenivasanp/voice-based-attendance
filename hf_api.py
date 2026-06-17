@@ -56,7 +56,7 @@ from src.model import load_checkpoint
 # CONFIGURABLE: Voice match threshold (0.0 to 1.0)
 # Higher = stricter, Lower = more lenient
 # ============================================================
-VOICE_MATCH_THRESHOLD = 0.60
+VOICE_MATCH_THRESHOLD = 0.40
 
 # ============================================================
 # CONFIGURABLE: Default geofence radius in meters
