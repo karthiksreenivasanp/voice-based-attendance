@@ -97,10 +97,26 @@ def init_db():
     """Connect to Firebase Firestore using service account credentials."""
     global db
     if not firebase_admin._apps:
-        if os.path.exists("database-attendance-syst-162cd-firebase-adminsdk-fbsvc-bd7ec3dd18.json"):
-            cred = credentials.Certificate("database-attendance-syst-162cd-firebase-adminsdk-fbsvc-bd7ec3dd18.json")
-        else:
-            cred = credentials.Certificate("/home/karthiksreenivasanp/Documents/s_github/voice-based-attendance/database-attendance-syst-162cd-firebase-adminsdk-fbsvc-bd7ec3dd18.json")
+        # Check potential credential paths
+        cred_paths = [
+            os.path.join(PROJECT_ROOT, "backend", "firebase-key.json"),
+            os.path.join(PROJECT_ROOT, "firebase-key.json"),
+            "firebase-key.json",
+            "database-attendance-syst-162cd-firebase-adminsdk-fbsvc-bd7ec3dd18.json",
+            os.path.join(PROJECT_ROOT, "database-attendance-syst-162cd-firebase-adminsdk-fbsvc-bd7ec3dd18.json")
+        ]
+        
+        selected_cred = None
+        for path in cred_paths:
+            if os.path.exists(path):
+                selected_cred = path
+                break
+                
+        if selected_cred is None:
+            # Fallback to absolute path just in case
+            selected_cred = "/home/karthiksreenivasanp/Documents/s_github/voice-based-attendance/backend/firebase-key.json"
+
+        cred = credentials.Certificate(selected_cred)
         firebase_admin.initialize_app(cred)
     db = firestore.client()
 
