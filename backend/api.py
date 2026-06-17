@@ -64,6 +64,7 @@ app.mount("/data", StaticFiles(directory="data"), name="data")
 
 # Global model variables
 model = None
+model_error_msg = None
 voiceprints = None
 config = None
 device = None
@@ -161,6 +162,9 @@ def startup_event():
         model.eval()
         print("Model loaded successfully.")
     except Exception as e:
+        model_error_msg = str(e)
+        import traceback
+        model_error_msg += "\n" + traceback.format_exc()
         print(f"Error loading model: {e}")
 
     # Load voiceprints from local file
@@ -180,12 +184,18 @@ def startup_event():
                 voiceprints[doc.id] = np.array(data["voice_embedding"], dtype=np.float32)
         print(f"Total voiceprints loaded: {len(voiceprints)}")
     except Exception as e:
+        model_error_msg = f"Error loading from Firebase: {e}"
         print(f"Error loading from Firebase: {e}")
 
 
 @app.get("/")
-def root():
-    return {"status": "Voice Attendance API is running!", "subjects": SUBJECTS}
+def status():
+    """Health check endpoint."""
+    return {
+        "status": "Voice Attendance API is running!",
+        "subjects": SUBJECTS,
+        "model_error": model_error_msg
+    }
 
 
 @app.get("/api/subjects")
