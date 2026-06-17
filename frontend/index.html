@@ -1,0 +1,1086 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice Attendance System</title>
+    <script src="https://unpkg.com/@tailwindcss/browser@4"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            font-family: 'Outfit', 'Inter', system-ui, sans-serif;
+            color-scheme: dark;
+            background-color: #0f172a;
+            color: #f8fafc;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            min-height: 100vh;
+            width: 100vw;
+            overflow-x: hidden;
+            background: radial-gradient(circle at top right, #1e1b4b, #0f172a);
+        }
+
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.05); border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 4px; }
+        .safe-area-pb { padding-bottom: env(safe-area-inset-bottom, 16px); }
+    </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: { 300: '#a5b4fc', 400: '#818cf8', 500: '#6366f1', 600: '#4f46e5' },
+                        dark: { 800: '#1e293b', 900: '#0f172a' }
+                    },
+                    fontFamily: { sans: ['Outfit', 'Inter', 'sans-serif'] }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="text-slate-100 font-sans antialiased selection:bg-primary-500/30">
+    <div id="app" class="pb-24 min-h-screen"></div>
+    <nav id="navbar" class="hidden fixed bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur-md border-t border-slate-800 flex justify-around p-4 z-50 shadow-[0_-10px_40px_-15px_rgba(0,0,0,0.5)] safe-area-pb"></nav>
+
+    <script>
+        // =========================================================================
+        // ⚙️ CONFIGURABLE VALUES
+        // You can easily modify these values to fit your specific needs!
+        // =========================================================================
+
+        // 1. SUBJECTS: Add or remove subjects from this list. 
+        // This will automatically update all dropdowns in the app.
+        const SUBJECTS = ["RIS", "BDS", "R", "ANN", "Mini-Project", "Lab(BDA)", "Economics"];
+
+        // =========================================================================
+
+        function formatLocalTimeFull(isoString) {
+            if (!isoString) return "";
+            try {
+                const dStr = isoString.endsWith('Z') ? isoString : isoString + 'Z';
+                const d = new Date(dStr);
+                return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true }) + ' (' + d.toLocaleDateString() + ')';
+            } catch(e) { return isoString.substring(0, 16); }
+        }
+
+        function formatLocalTimeShort(isoString) {
+            if (!isoString) return "";
+            try {
+                const dStr = isoString.endsWith('Z') ? isoString : isoString + 'Z';
+                const d = new Date(dStr);
+                return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+            } catch(e) { return isoString.substring(11, 16); }
+        }
+
+        setInterval(() => {
+            const clockEl = document.getElementById('realtime-clock');
+            const dateEl = document.getElementById('realtime-date');
+            if (clockEl && dateEl) {
+                const now = new Date();
+                clockEl.innerText = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true });
+                dateEl.innerText = now.toLocaleDateString([], { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            }
+        }, 1000);
+
+        const savedState = JSON.parse(localStorage.getItem('voice_app_state') || '{}');
+        const state = {
+            currentView: savedState.currentView || 'login',
+            role: savedState.role || 'STUDENT',
+            isRegister: false,
+            showSettings: false,
+            // 2. API_URL: This is the backend server address. 
+            apiUrl: savedState.apiUrl || 'https://karthiksreenivasanp-backend-finetuned-ecapa.hf.space',
+            username: savedState.username || '',
+            name: savedState.name || '',
+            rollNo: savedState.rollNo || '',
+            course: savedState.course || '',
+            subject: savedState.subject || '',
+            mentor: savedState.mentor || '',
+            voiceEnrolled: savedState.voiceEnrolled || false,
+            enrollStep: 1,
+            recording: false,
+            attendanceList: [],
+            teachers: [],
+            studentsList: [],
+            attendanceHistory: [],
+            activeSession: null,
+            voiceUrls: {}
+        };
+
+        function saveSession() {
+            localStorage.setItem('voice_app_state', JSON.stringify({
+                currentView: state.currentView, role: state.role, apiUrl: state.apiUrl,
+                username: state.username, name: state.name, rollNo: state.rollNo,
+                course: state.course, subject: state.subject, mentor: state.mentor, voiceEnrolled: state.voiceEnrolled
+            }));
+        }
+
+        function renderLoginView() {
+            return `
+            <div class="min-h-screen flex flex-col items-center justify-center p-4 relative overflow-hidden">
+                <div class="absolute top-[-10%] left-[-10%] w-96 h-96 bg-primary-600/20 rounded-full blur-3xl pointer-events-none"></div>
+                <div class="absolute bottom-[-10%] right-[-10%] w-96 h-96 bg-purple-600/20 rounded-full blur-3xl pointer-events-none"></div>
+                
+                <div class="absolute top-6 right-6 flex gap-4 z-50">
+                    <button onclick="toggleSettings()" class="p-2 rounded-full transition-colors ${state.showSettings ? 'bg-primary-600 text-white' : 'hover:bg-slate-800 text-slate-400 hover:text-white'}">
+                        <i data-lucide="settings" class="w-5 h-5"></i>
+                    </button>
+                </div>
+
+                ${state.showSettings ? `
+                <div class="absolute top-20 right-6 z-50 w-80 bg-slate-800/90 backdrop-blur-xl border border-slate-700/50 rounded-2xl p-5 shadow-2xl">
+                    <h4 class="flex items-center gap-2 m-0 mb-3 font-semibold text-slate-200">
+                        <i data-lucide="server" class="w-[18px] text-primary-500"></i> API Target Server
+                    </h4>
+                    <p class="text-xs text-slate-400 mb-3 truncate">Current: ${state.apiUrl}</p>
+                    <input type="text" value="${state.apiUrl}" onchange="state.apiUrl = this.value; saveSession();" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-primary-500 mb-4" />
+                </div>
+                ` : ''}
+
+                <div class="w-full max-w-md z-10">
+                    <div class="bg-slate-800/40 backdrop-blur-xl border border-slate-700/50 p-8 rounded-3xl shadow-2xl">
+                        <div class="text-center mb-8">
+                            <div class="inline-flex items-center justify-center p-4 bg-primary-500/10 rounded-2xl mb-4">
+                                <i data-lucide="shield-check" class="w-10 h-10 text-primary-500"></i>
+                            </div>
+                            <h2 class="text-2xl font-bold text-white mb-2 tracking-tight">${state.isRegister ? 'Create an Account' : 'Welcome Back'}</h2>
+                            <p class="text-slate-400 text-sm">${state.isRegister ? 'Join the voice attendance system' : 'Secure voice-based attendance'}</p>
+                        </div>
+
+                        <form onsubmit="handleAuth(event)" class="space-y-4">
+                            ${state.isRegister ? `
+                            <div class="flex gap-2 mb-2 p-1 bg-slate-900/50 rounded-xl">
+                                <button type="button" onclick="setRole('STUDENT')" class="flex-1 py-2 text-sm font-medium rounded-lg transition-all ${state.role === 'STUDENT' ? 'bg-primary-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'}">Student</button>
+                                <button type="button" onclick="setRole('TEACHER')" class="flex-1 py-2 text-sm font-medium rounded-lg transition-all ${state.role === 'TEACHER' ? 'bg-primary-600 text-white shadow-md' : 'text-slate-400 hover:text-slate-200'}">Teacher</button>
+                            </div>
+                            ` : ''}
+
+                            <div>
+                                <input id="username-input" name="username" autocomplete="username" type="text" placeholder="${state.isRegister && state.role === 'STUDENT' ? 'Choose a Username (Student ID)' : 'Username (Student ID / Teacher ID)'}" required class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-primary-500" />
+                            </div>
+
+                            ${state.isRegister && state.role === 'STUDENT' ? `
+                            <div class="space-y-4">
+                                <input id="name-input" name="name" autocomplete="name" type="text" placeholder="Full Name" required class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-primary-500" />
+                                <div class="flex gap-4">
+                                    <input id="rollno-input" name="rollno" type="text" placeholder="Roll Number" required class="w-1/2 bg-slate-900/80 border border-slate-700 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-primary-500" />
+                                    <select id="course-input" name="course" required class="w-1/2 bg-slate-900/80 border border-slate-700 rounded-xl px-4 py-3 text-slate-100 focus:outline-none focus:border-primary-500 appearance-none">
+                                        <option value="" disabled selected>Course</option>
+                                        ${['ME', 'AD', 'EEE', 'EC', 'CSE'].map(c => `<option value="${c}">${c}</option>`).join('')}
+                                    </select>
+                                </div>
+                            </div>
+                            ` : ''}
+
+                            ${state.isRegister && state.role === 'TEACHER' ? `
+                            <div class="space-y-4">
+                                <input id="name-input" name="name" autocomplete="name" type="text" placeholder="Full Name" required class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-primary-500" />
+                                <select id="subject-input" name="subject" required class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-4 py-3 text-slate-100 focus:outline-none focus:border-primary-500 appearance-none">
+                                    <option value="" disabled selected>Select Subject Taught</option>
+                                    ${SUBJECTS.map(s => `<option value="${s}">${s}</option>`).join('')}
+                                </select>
+                            </div>
+                            ` : ''}
+
+                            <div class="relative">
+                                <input id="password-input" name="password" autocomplete="${state.isRegister ? 'new-password' : 'current-password'}" type="password" placeholder="Password" required class="w-full bg-slate-900/80 border border-slate-700 rounded-xl px-4 py-3 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-primary-500 pr-12" />
+                                <button type="button" onclick="togglePasswordVisibility()" class="absolute inset-y-0 right-0 flex items-center pr-4 text-slate-400 hover:text-slate-200">
+                                    <i data-lucide="eye" id="password-eye-icon" class="w-5 h-5"></i>
+                                </button>
+                            </div>
+
+                            <button type="submit" class="w-full bg-gradient-to-r from-primary-600 to-primary-500 hover:from-primary-500 hover:to-indigo-500 text-white font-semibold py-3.5 px-4 rounded-xl shadow-lg mt-6">
+                                ${state.isRegister ? `<i data-lucide="user-plus" class="w-[18px] inline"></i> Register Now` : `<i data-lucide="log-in" class="w-[18px] inline"></i> Sign In`}
+                            </button>
+                        </form>
+
+                        <div class="mt-8 text-center border-t border-slate-700/50 pt-6">
+                            <p class="text-slate-400 text-sm">
+                                ${state.isRegister ? 'Already have an account?' : "Don't have an account?"}
+                                <button onclick="toggleRegister()" class="ml-2 font-medium text-primary-400 hover:text-primary-300 transition-colors">
+                                    ${state.isRegister ? 'Login instead' : 'Register here'}
+                                </button>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+        }
+
+        function renderStudentDashboard() {
+            return `
+            <div class="max-w-md mx-auto p-4 space-y-6 mt-4">
+                <header class="mb-6 flex justify-between items-center">
+                    <div>
+                        <h1 class="text-2xl font-bold text-white">Student Hub</h1>
+                        <p class="text-slate-400 text-sm">Hello, ${state.name || state.username}</p>
+                    </div>
+                    <div class="w-12 h-12 bg-primary-600/20 rounded-full flex items-center justify-center text-primary-400 border border-primary-500/30">
+                        <i data-lucide="user" class="w-6 h-6"></i>
+                    </div>
+                </header>
+
+                <div class="bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700/50 p-5 rounded-2xl shadow-lg relative overflow-hidden">
+                    <div class="relative z-10 grid grid-cols-2 gap-4">
+                        <div>
+                            <p class="text-xs text-slate-500 uppercase font-semibold">Roll No</p>
+                            <p class="text-white font-medium">${state.rollNo || 'N/A'}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-slate-500 uppercase font-semibold">Course</p>
+                            <p class="text-white font-medium truncate">${state.course || 'N/A'}</p>
+                        </div>
+                    </div>
+                </div>
+
+                ${!state.mentor ? `
+                <div class="bg-amber-500/10 border border-amber-500/30 p-5 rounded-2xl shadow-md">
+                    <h3 class="text-amber-400 font-bold mb-2 flex items-center gap-2"><i data-lucide="shield-check" class="w-5 h-5"></i> Select Your Mentor</h3>
+                    <p class="text-sm text-amber-100/70 mb-4">You must select an available mentor to attend their classes.</p>
+                    <select id="mentor-select" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-slate-100 focus:outline-none focus:border-primary-500 appearance-none mb-3">
+                        <option value="" disabled selected>Select Mentor</option>
+                        ${state.teachers && state.teachers.length > 0 ? state.teachers.map(t => `<option value="${t.id}">${t.name} - ${t.subject}</option>`).join('') : '<option disabled>Loading mentors...</option>'}
+                    </select>
+                    <button onclick="updateMentor()" class="w-full bg-amber-600 hover:bg-amber-500 text-white py-3 rounded-xl font-medium transition-all shadow-md">
+                        Save Mentor
+                    </button>
+                </div>
+                ` : `
+                <div class="bg-slate-800/40 border border-slate-700/50 p-5 rounded-2xl shadow-md flex items-center justify-between">
+                    <div>
+                        <p class="text-xs text-slate-500 uppercase font-semibold">Mentor</p>
+                        <p class="text-white font-medium">${state.mentor}</p>
+                    </div>
+                    <button onclick="changeMentor()" class="p-2 bg-slate-700 hover:bg-slate-600 rounded-xl text-primary-400 transition-colors shadow-sm" title="Change Mentor">
+                        <i data-lucide="edit-2" class="w-5 h-5"></i>
+                    </button>
+                </div>
+                `}
+
+                <div class="bg-slate-800/40 border border-slate-700/50 p-5 rounded-2xl shadow-md">
+                    <div class="flex justify-between items-start mb-4">
+                        <div>
+                            <h3 class="font-bold text-slate-200 flex items-center gap-2">
+                                Voice Signature
+                                ${state.voiceEnrolled ? `<i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-400"></i>` : ''}
+                            </h3>
+                            <p class="text-xs text-slate-500 mt-1">
+                                ${state.voiceEnrolled ? 'Enrolled. You can mark attendance.' : 'No voice signature found.'}
+                            </p>
+                        </div>
+                    </div>
+
+                    ${state.voiceEnrolled ? `
+                    <div class="space-y-4">
+                        ${[1,2,3].map(i => `
+                            <div class="flex items-center gap-2 bg-slate-900 p-2 rounded-xl">
+                                <button onclick="toggleAudioPlayback('phrase${i}')" class="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-primary-400" id="play-btn-phrase${i}">
+                                    <i data-lucide="play" class="w-4 h-4"></i>
+                                </button>
+                                <div class="flex-1">
+                                    <div class="text-xs text-slate-400">Phrase ${i}</div>
+                                    <input type="range" id="slider-phrase${i}" value="0" class="w-full h-1 bg-slate-700 rounded-lg appearance-none cursor-pointer" disabled>
+                                </div>
+                                <audio id="audio-phrase${i}" src="${state.voiceUrls && state.voiceUrls['phrase'+i] ? state.apiUrl + state.voiceUrls['phrase'+i] : ''}" ontimeupdate="updateAudioSlider('phrase${i}')" onended="audioEnded('phrase${i}')"></audio>
+                            </div>
+                        `).join('')}
+                        <div class="flex gap-2">
+                            <button onclick="navigate('enroll')" class="flex-1 bg-slate-800 hover:bg-slate-700 text-slate-300 px-4 py-3 rounded-xl font-medium border border-slate-700/50">
+                                Re-Enroll Voice
+                            </button>
+                            <button onclick="deleteVoice()" class="bg-red-500/20 text-red-400 hover:bg-red-500/30 p-3 rounded-xl border border-red-500/20">
+                                <i data-lucide="trash-2" class="w-5 h-5"></i>
+                            </button>
+                        </div>
+                    </div>
+                    ` : `
+                    <button onclick="navigate('enroll')" class="block w-full text-center bg-primary-600 hover:bg-primary-500 text-white py-3 rounded-xl font-medium shadow-md shadow-primary-500/20">
+                        Enroll Voice Profile Now
+                    </button>
+                    `}
+                </div>
+
+                ${state.voiceEnrolled ? `
+                <button onclick="navigate('verify')" class="w-full flex flex-col items-center justify-center p-8 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 border border-indigo-500/30 rounded-3xl group shadow-lg hover:shadow-indigo-500/20 transition-all duration-300">
+                    <div class="bg-indigo-500/20 p-4 rounded-full mb-4">
+                        <i data-lucide="mic" class="w-8 h-8 text-indigo-400"></i>
+                    </div>
+                    <h2 class="text-xl font-bold text-white">Mark Attendance</h2>
+                    <p class="text-sm text-indigo-200 mt-2">Requires Location & Microphone</p>
+                </button>
+                ` : ''}
+
+                <div class="mt-8">
+                    <h3 class="text-lg font-bold text-slate-200 mb-4 px-1">Attendance History</h3>
+                    <div class="bg-slate-800/30 border border-slate-700/50 rounded-2xl overflow-hidden">
+                        <div class="divide-y divide-slate-700/50">
+                            ${state.attendanceHistory && state.attendanceHistory.length > 0 ? state.attendanceHistory.map(a => `
+                            <div class="p-4 flex items-center justify-between hover:bg-slate-700/20 transition-colors">
+                                <div>
+                                    <div class="text-sm font-semibold text-slate-300">${a.subject}</div>
+                                    <div class="text-xs text-slate-500 flex items-center gap-1 mt-1">
+                                        <i data-lucide="calendar" class="w-3 h-3"></i> ${a.date} | ${formatLocalTimeShort(a.timestamp)}
+                                    </div>
+                                </div>
+                                <div class="px-2.5 py-1 rounded-full text-xs font-bold border ${a.status === 'PRESENT' ? 'text-emerald-400 border-emerald-500/30 bg-emerald-500/10' : (a.status === 'LATE' ? 'text-amber-400 border-amber-500/30 bg-amber-500/10' : 'text-rose-400 border-rose-500/30 bg-rose-500/10')}">
+                                    ${a.status}
+                                </div>
+                            </div>
+                            `).join('') : '<div class="p-6 text-center text-slate-500 text-sm">No attendance history found.</div>'}
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+        }
+
+        function renderTeacherDashboard() {
+            return `
+            <div class="max-w-4xl mx-auto p-4 space-y-6 mt-4">
+                <header class="mb-8 flex justify-between items-start">
+                    <div>
+                        <h1 class="text-3xl font-bold text-white mb-2">Teacher Dashboard</h1>
+                        <p class="text-slate-400">Welcome back, Prof. ${state.name || state.username}</p>
+                    </div>
+                    <div class="text-right">
+                        <div id="realtime-clock" class="text-primary-400 font-mono font-bold tracking-wider text-xl bg-slate-900/50 px-4 py-2 rounded-xl border border-slate-700/50">--:--:--</div>
+                        <div id="realtime-date" class="text-slate-500 text-xs mt-2 font-medium">---</div>
+                    </div>
+                </header>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="bg-slate-800/50 backdrop-blur-md border border-slate-700/50 p-6 rounded-2xl flex flex-col items-center justify-center">
+                        <h2 class="text-4xl font-bold text-emerald-400 mb-1">${state.attendanceList ? state.attendanceList.filter(a => a.status === 'PRESENT' || a.status === 'LATE').length : 0}</h2>
+                        <span class="text-xs font-semibold text-slate-400 tracking-wider">MARKED TODAY</span>
+                    </div>
+                    <div class="bg-slate-800/50 backdrop-blur-md border border-slate-700/50 p-6 rounded-2xl flex flex-col items-center justify-center">
+                        <h2 class="text-4xl font-bold text-primary-400 mb-1">${state.attendanceList ? state.attendanceList.length : 0}</h2>
+                        <span class="text-xs font-semibold text-slate-400 tracking-wider">TOTAL LOGS</span>
+                    </div>
+                </div>
+
+                <div class="bg-slate-800/50 backdrop-blur-md border ${state.activeSession ? 'border-emerald-500/50' : 'border-primary-500/20'} p-6 rounded-2xl shadow-lg relative overflow-hidden">
+                    <div class="flex flex-col gap-4 relative z-10">
+                        <div>
+                            <h3 class="text-xl font-bold text-slate-100 flex items-center gap-2 mb-1">
+                                <i data-lucide="${state.activeSession ? 'radio' : 'map-pin'}" class="${state.activeSession ? 'text-emerald-400 animate-pulse' : 'text-primary-400'} w-5 h-5"></i> 
+                                ${state.activeSession ? 'Session Active' : 'Start New Session'}
+                            </h3>
+                            ${state.activeSession ? `
+                                <p class="text-sm text-slate-400">
+                                    Subject: <strong>${state.activeSession.subject}</strong><br>
+                                    Started: ${formatLocalTimeFull(state.activeSession.start_time)}
+                                </p>
+                            ` : ''}
+                        </div>
+                        
+                        ${!state.activeSession ? `
+                        <div class="flex flex-col gap-3">
+                            <div class="flex flex-col md:flex-row gap-3">
+                                <select id="session-subject" class="bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-slate-100 focus:outline-none focus:border-primary-500 appearance-none flex-1">
+                                    <option value="${state.subject}" selected>${state.subject}</option>
+                                    ${SUBJECTS.filter(s => s !== state.subject).map(s => `<option value="${s}">${s}</option>`).join('')}
+                                </select>
+                            </div>
+                            <div class="bg-slate-900 border border-slate-700 rounded-xl p-4 flex flex-col gap-2">
+                                <label for="geofence-radius" class="text-sm font-semibold text-slate-300 flex justify-between">
+                                    <span>Geofence Boundary Radius</span>
+                                    <span id="radius-value" class="text-primary-400 font-bold">20m</span>
+                                </label>
+                                <input type="range" id="geofence-radius" min="5" max="30" step="1" value="20" class="w-full accent-primary-500 cursor-pointer" oninput="document.getElementById('radius-value').innerText = this.value + 'm'">
+                                <p class="text-xs text-slate-500">Only students within this distance (Haversine calculation) can mark attendance.</p>
+                            </div>
+                            <button onclick="startSession()" class="bg-primary-600 hover:bg-primary-500 text-white w-full py-3 rounded-xl font-medium transition-all shadow-md flex items-center justify-center gap-2 mt-2">
+                                <i data-lucide="play" class="w-4 h-4"></i> Start Session
+                            </button>
+                        </div>
+                        ` : `
+                        <button onclick="stopSession()" class="bg-red-600 hover:bg-red-500 text-white px-6 py-3 rounded-xl font-medium transition-all shadow-md flex items-center justify-center gap-2">
+                            <i data-lucide="square" class="w-4 h-4"></i> Stop Session
+                        </button>
+                        `}
+                    </div>
+                </div>
+
+                <div class="flex grid-cols-2 gap-4">
+                    <button onclick="navigate('approve')" class="flex-1 bg-slate-700 hover:bg-slate-600 text-white py-3 rounded-xl font-medium flex items-center justify-center gap-2">
+                        <i data-lucide="check-circle-2" class="w-[18px]"></i> Approve
+                    </button>
+                    <button onclick="exportCSV()" class="flex-1 border border-primary-500/50 hover:bg-primary-500/10 text-primary-300 py-3 rounded-xl font-medium flex items-center justify-center gap-2">
+                        <i data-lucide="file-down" class="w-[18px]"></i> Export CSV
+                    </button>
+                </div>
+
+                <div class="mt-8">
+                    <h3 class="text-lg font-bold text-slate-200 mb-4 px-1">Live Attendance Feed</h3>
+                    <div class="bg-slate-800/30 border border-slate-700/50 rounded-2xl overflow-hidden shadow-xl">
+                        <div class="divide-y divide-slate-700/50">
+                            ${state.attendanceList && state.attendanceList.length > 0 ? state.attendanceList.map(record => `
+                            <div class="p-4 md:p-5 hover:bg-slate-700/20 transition-colors flex items-center justify-between">
+                                <div class="flex-1">
+                                    <div class="font-semibold text-slate-200">${record.name} (${record.student_id})</div>
+                                    <div class="text-xs text-slate-500 flex items-center gap-1 mt-1">
+                                        <i data-lucide="clock" class="w-3 h-3"></i> ${formatLocalTimeShort(record.timestamp)}
+                                    </div>
+                                </div>
+                                <div class="flex flex-col items-end gap-1">
+                                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${record.status === 'PRESENT' ? 'bg-emerald-500/10 text-emerald-400' : (record.status === 'LATE' ? 'bg-amber-500/10 text-amber-400' : 'bg-rose-500/10 text-rose-400')}">
+                                        ${record.status}
+                                    </span>
+                                </div>
+                            </div>
+                            `).join('') : `
+                            <div class="p-8 text-center"><p class="text-slate-500">No attendance records yet.</p></div>
+                            `}
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+        }
+
+        function renderEnroll() {
+            const phrases = [
+                "My voice is my password",
+                "Present",
+                `Roll number ${state.rollNo || '31'} present`
+            ];
+
+            if (state.enrollStep === 4) {
+                return `
+                <div class="max-w-md mx-auto p-4 space-y-6 mt-10">
+                    <div class="bg-emerald-500/10 border border-emerald-500/20 p-8 rounded-3xl text-center shadow-lg">
+                        <div class="w-20 h-20 bg-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-emerald-500/30">
+                            <i data-lucide="check" class="w-10 h-10 text-white"></i>
+                        </div>
+                        <h2 class="text-2xl font-bold text-emerald-400 mb-2">Enrollment Complete!</h2>
+                        <p class="text-emerald-100/70 mb-8">All 3 phrases were successfully registered.</p>
+                        <button onclick="navigate('dashboard')" class="bg-slate-800 hover:bg-slate-700 text-white font-semibold py-3 px-8 rounded-xl transition-colors">
+                            Return Home
+                        </button>
+                    </div>
+                </div>`;
+            }
+
+            return `
+            <div class="max-w-md mx-auto p-4 space-y-6 mt-4">
+                <header class="mb-6 flex items-center gap-3">
+                    <button onclick="navigate('dashboard')" class="p-2 bg-slate-800 hover:bg-slate-700 rounded-xl">
+                        <i data-lucide="arrow-left" class="w-5 h-5 text-slate-300"></i>
+                    </button>
+                    <div>
+                        <h1 class="text-2xl font-bold text-white flex items-center gap-2">
+                            Voice Enrollment
+                        </h1>
+                        <p class="text-slate-400 text-sm mt-1">Step ${state.enrollStep} of 3</p>
+                    </div>
+                </header>
+
+                <div class="bg-slate-800/40 border border-slate-700/50 p-8 rounded-3xl text-center shadow-lg min-h-[350px] flex flex-col justify-center">
+                    <div class="mb-8">
+                        <p class="text-xl text-slate-300">Please read the phrase below clearly:</p>
+                        <p class="text-2xl font-bold text-primary-400 mt-4 p-4 bg-slate-900 rounded-xl border border-primary-500/30">
+                            "${phrases[state.enrollStep - 1]}"
+                        </p>
+                    </div>
+
+                    <div class="relative flex justify-center mb-6">
+                        ${state.recording ? `
+                        <div class="absolute inset-0 bg-red-500/20 rounded-full animate-ping delay-75 scale-150"></div>
+                        ` : ''}
+                        
+                        <button id="record-btn" onclick="toggleEnrollRecord()" class="relative z-10 w-24 h-24 rounded-full flex items-center justify-center transition-all duration-300 ${state.recording ? 'bg-slate-900 border-4 border-red-500 shadow-[0_0_30px_rgba(239,68,68,0.5)] scale-110' : 'bg-gradient-to-br from-red-500 to-red-600 hover:scale-105'}">
+                            ${state.recording ? `<i data-lucide="square" class="w-8 h-8 text-red-500 fill-red-500"></i>` : `<i data-lucide="mic" class="w-9 h-9 text-white"></i>`}
+                        </button>
+                    </div>
+                    <p class="text-sm font-medium ${state.recording ? 'text-red-400 animate-pulse' : 'text-slate-400'}">
+                        ${state.recording ? "Recording... Tap Square to Stop" : "Tap Microphone to Start"}
+                    </p>
+                </div>
+            </div>`;
+        }
+
+        function renderStudentsList() {
+            return `
+            <div class="max-w-4xl mx-auto p-4 space-y-6 mt-4">
+                <header class="mb-6 flex items-center gap-3">
+                    <button onclick="navigate('dashboard')" class="p-2 bg-slate-800 hover:bg-slate-700 rounded-xl">
+                        <i data-lucide="arrow-left" class="w-5 h-5 text-slate-300"></i>
+                    </button>
+                    <h2 class="text-2xl font-bold text-white m-0">Enrolled Students</h2>
+                </header>
+                <div class="bg-slate-800/40 border border-slate-700/50 rounded-3xl shadow-lg overflow-hidden">
+                    <div class="divide-y divide-slate-700/50">
+                        ${state.studentsList && state.studentsList.length > 0 ? state.studentsList.map(s => `
+                        <div class="p-4 flex items-center justify-between">
+                            <div>
+                                <div class="font-semibold text-slate-200">${s.name}</div>
+                                <div class="text-xs text-slate-500">${s.roll_no} | ${s.course} | ID: ${s.id}</div>
+                            </div>
+                            <div>
+                                ${s.voice_enrolled ? `<span class="px-2 py-1 bg-emerald-500/10 text-emerald-400 text-xs rounded-full border border-emerald-500/30">Voice Set</span>` : `<span class="px-2 py-1 bg-rose-500/10 text-rose-400 text-xs rounded-full border border-rose-500/30">No Voice</span>`}
+                            </div>
+                        </div>
+                        `).join('') : '<div class="p-6 text-center text-slate-400">No students found.</div>'}
+                    </div>
+                </div>
+            </div>`;
+        }
+
+        function renderApprove() {
+            return `
+            <div class="max-w-4xl mx-auto p-4 space-y-6 mt-4">
+                <div class="flex items-center gap-4 mb-6">
+                    <button onclick="navigate('dashboard')" class="p-2 bg-slate-800 hover:bg-slate-700 rounded-xl">
+                        <i data-lucide="arrow-left" class="w-5 h-5 text-slate-300"></i>
+                    </button>
+                    <h2 class="text-2xl font-bold text-white m-0">Approve Attendance</h2>
+                </div>
+                <div class="bg-slate-800/30 border border-slate-700/50 rounded-2xl overflow-hidden shadow-xl">
+                    <div class="divide-y divide-slate-700/50">
+                        ${(state.attendanceList || []).length > 0 ? state.attendanceList.map(a => `
+                        <div class="p-4 md:p-5 flex flex-col md:flex-row md:items-center justify-between hover:bg-slate-700/20 gap-3">
+                            <div class="flex-1">
+                                <div class="font-semibold text-slate-200 flex items-center gap-2">
+                                    ${a.name} (${a.student_id})
+                                    ${a.is_late ? `<span class="bg-amber-500/20 text-amber-400 text-[10px] px-1.5 py-0.5 rounded border border-amber-500/30 uppercase">Latecomer</span>` : ''}
+                                </div>
+                                <div class="text-xs ${a.confidence >= 0.60 ? 'text-emerald-500' : 'text-red-500'} flex items-center gap-1 mt-1">
+                                    Voice Match: ${(a.confidence * 100).toFixed(1)}% | Time: ${formatLocalTimeShort(a.timestamp)}
+                                </div>
+                            </div>
+                            <div class="flex gap-2">
+                                <button onclick="updateAttendance('${a.student_id}', 'PRESENT')" class="px-3 py-1.5 ${a.status === 'PRESENT' ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50' : 'bg-slate-800 text-slate-400 border-slate-700'} border rounded-lg text-xs font-bold">PRESENT</button>
+                                <button onclick="updateAttendance('${a.student_id}', 'LATE')" class="px-3 py-1.5 ${a.status === 'LATE' ? 'bg-amber-500/20 text-amber-300 border-amber-500/50' : 'bg-slate-800 text-slate-400 border-slate-700'} border rounded-lg text-xs font-bold">LATE</button>
+                                <button onclick="updateAttendance('${a.student_id}', 'ABSENT')" class="px-3 py-1.5 ${a.status === 'ABSENT' ? 'bg-red-500/20 text-red-300 border-red-500/50' : 'bg-slate-800 text-slate-400 border-slate-700'} border rounded-lg text-xs font-bold">ABSENT</button>
+                            </div>
+                        </div>
+                        `).join('') : '<div class="p-6 text-center text-slate-400">No attendance records yet for this session.</div>'}
+                    </div>
+                </div>
+            </div>`;
+        }
+
+        function renderVerify() {
+            const phrases = [
+                "My voice is my password",
+                "Present",
+                `Roll number ${state.rollNo || '31'} present`
+            ];
+            const p = phrases[Math.floor(Math.random() * phrases.length)];
+            
+            return `
+            <div class="max-w-md mx-auto p-4 space-y-6 mt-10">
+                <div class="bg-slate-800/40 border border-slate-700/50 p-8 rounded-3xl text-center shadow-lg flex flex-col justify-center relative">
+                    <h2 class="text-2xl font-bold text-white mb-2">Voice Match</h2>
+                    <p class="text-slate-400 mb-4 text-sm">Read the phrase below to verify identity:</p>
+                    <p class="text-lg font-bold text-primary-400 mb-6 p-3 bg-slate-900 rounded-lg">"${p}"</p>
+                    
+                    <button id="verify-btn" onclick="verifyVoiceReal()" class="w-full bg-primary-600 hover:bg-primary-500 text-white font-semibold py-4 px-8 rounded-xl flex items-center justify-center gap-2 mb-4">
+                        <i data-lucide="mic" class="w-[18px]"></i> Start Voice Test
+                    </button>
+                    
+                    <div id="verify-results" class="hidden flex-col gap-4 mt-4 w-full">
+                        <div class="bg-slate-900/50 rounded-xl p-4 border border-slate-700/50">
+                            <div class="text-sm text-slate-400 mb-1">Confidence Score</div>
+                            <div id="verify-confidence" class="text-3xl font-bold text-emerald-400">--%</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="step-2-container" class="hidden bg-slate-800/40 border border-emerald-500/30 p-8 rounded-3xl text-center shadow-lg flex-col justify-center">
+                    <h2 class="text-2xl font-bold text-white mb-2">Location Verified</h2>
+                    <p class="text-slate-400 mb-6 text-sm">You are within the classroom geofence.</p>
+                    <button id="mark-btn" onclick="markAttendanceFinal()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-4 px-8 rounded-xl flex items-center justify-center gap-2">
+                        <i data-lucide="map-pin" class="w-[18px]"></i> Submit Attendance
+                    </button>
+                </div>
+                <button onclick="navigate('dashboard')" class="w-full mt-4 text-slate-400 py-2">Cancel</button>
+            </div>`;
+        }
+
+        function renderApp() {
+            const app = document.getElementById('app');
+            const navbar = document.getElementById('navbar');
+
+            if (state.currentView === 'login') {
+                navbar.classList.add('hidden');
+                app.innerHTML = renderLoginView();
+            } else {
+                navbar.classList.remove('hidden');
+                if (state.currentView === 'dashboard') {
+                    app.innerHTML = state.role === 'TEACHER' ? renderTeacherDashboard() : renderStudentDashboard();
+                } else if (state.currentView === 'enroll') {
+                    app.innerHTML = renderEnroll();
+                } else if (state.currentView === 'verify') {
+                    app.innerHTML = renderVerify();
+                } else if (state.currentView === 'students') {
+                    app.innerHTML = renderStudentsList();
+                } else if (state.currentView === 'approve') {
+                    app.innerHTML = renderApprove();
+                }
+
+                navbar.innerHTML = `
+                    <button onclick="navigate('dashboard')" class="flex flex-col items-center gap-1 transition-colors ${state.currentView === 'dashboard' ? 'text-primary-500' : 'text-slate-500 hover:text-slate-300'}">
+                        <div class="p-2 rounded-xl ${state.currentView === 'dashboard' ? 'bg-primary-500/10' : 'bg-transparent'}"><i data-lucide="home" class="w-[22px] h-[22px]"></i></div>
+                    </button>
+                    ${state.role === 'STUDENT' ? `
+                    <button onclick="navigate('enroll')" class="flex flex-col items-center gap-1 transition-colors ${state.currentView === 'enroll' ? 'text-primary-500' : 'text-slate-500 hover:text-slate-300'}">
+                        <div class="p-2 rounded-xl ${state.currentView === 'enroll' ? 'bg-primary-500/10' : 'bg-transparent'}"><i data-lucide="mic" class="w-[22px] h-[22px]"></i></div>
+                    </button>
+                    ` : `
+                    <button onclick="navigate('students')" class="flex flex-col items-center gap-1 transition-colors ${state.currentView === 'students' ? 'text-primary-500' : 'text-slate-500 hover:text-slate-300'}">
+                        <div class="p-2 rounded-xl ${state.currentView === 'students' ? 'bg-primary-500/10' : 'bg-transparent'}"><i data-lucide="users" class="w-[22px] h-[22px]"></i></div>
+                    </button>
+                    `}
+                    <button onclick="logout()" class="flex flex-col items-center gap-1 text-slate-500 hover:text-red-400 transition-colors p-0">
+                        <div class="p-2 rounded-xl bg-transparent"><i data-lucide="log-out" class="w-[22px] h-[22px]"></i></div>
+                    </button>
+                `;
+            }
+
+            if (window.lucide) window.lucide.createIcons();
+        }
+
+        window.toggleRegister = () => { state.isRegister = !state.isRegister; renderApp(); };
+        window.toggleSettings = () => { state.showSettings = !state.showSettings; renderApp(); };
+        window.setRole = (r) => { state.role = r; renderApp(); };
+
+        window.handleAuth = async (e) => {
+            e.preventDefault();
+            const payload = { 
+                username: document.getElementById('username-input').value,
+                password: document.getElementById('password-input').value,
+                role: state.role 
+            };
+            
+            if (state.isRegister) {
+                payload.name = document.getElementById('name-input').value;
+                if (state.role === 'STUDENT') {
+                    payload.roll_no = document.getElementById('rollno-input').value;
+                    payload.course = document.getElementById('course-input').value;
+                } else {
+                    payload.subject = document.getElementById('subject-input').value;
+                }
+            }
+            
+            // Allow browser password managers a moment to capture the credentials before navigating away
+            setTimeout(async () => {
+                try {
+                    const endpoint = state.isRegister ? "/api/register" : "/api/login";
+                const res = await fetch(state.apiUrl + endpoint, {
+                    method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                
+                if (!res.ok) throw new Error(data.detail || "Authentication failed");
+                
+                state.username = payload.username;
+                state.role = data.role || payload.role;
+                state.name = data.name;
+                state.rollNo = data.roll_no || '';
+                state.course = data.course || '';
+                state.subject = data.subject || '';
+                state.mentor = data.mentor || '';
+                state.voiceEnrolled = data.voice_enrolled || false;
+                state.currentView = 'dashboard';
+                saveSession();
+                
+                if (state.role === 'TEACHER') {
+                    await checkActiveSession();
+                    if (!window.refreshInterval) window.refreshInterval = setInterval(async () => {
+                        await checkActiveSession();
+                        loadAttendance();
+                    }, 5000);
+                } else {
+                    loadTeachers(); // Fetch teachers for mentor dropdown
+                    loadAttendanceHistory();
+                    if (state.voiceEnrolled) loadVoiceUrls();
+                }
+                
+                renderApp();
+            } catch (err) {
+                alert(err.message);
+            }
+            }, 100);
+        };
+
+        window.togglePasswordVisibility = () => {
+            const input = document.getElementById('password-input');
+            const icon = document.getElementById('password-eye-icon');
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.setAttribute('data-lucide', 'eye-off');
+            } else {
+                input.type = 'password';
+                icon.setAttribute('data-lucide', 'eye');
+            }
+            if (window.lucide) window.lucide.createIcons();
+        };
+
+        window.checkActiveSession = async () => {
+            try {
+                const res = await fetch(state.apiUrl + "/api/session/active");
+                const data = await res.json();
+                state.activeSession = data.active ? data : null;
+                if (state.activeSession) loadAttendance();
+                renderApp();
+            } catch(e) {}
+        };
+
+        window.startSession = () => {
+            const subj = document.getElementById('session-subject').value;
+            const radius = parseFloat(document.getElementById('geofence-radius').value);
+            navigator.geolocation.getCurrentPosition(async (pos) => {
+                try {
+                    await fetch(state.apiUrl + "/api/session/start", {
+                        method: 'POST', headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ teacher_id: state.username, lat: pos.coords.latitude, lng: pos.coords.longitude, radius: radius, subject: subj })
+                    });
+                    await checkActiveSession();
+                } catch(e) { alert("Failed to start session: " + e); }
+            }, (err) => { 
+                alert("Geolocation error: " + err.message + ". Please enable GPS and allow location access."); 
+            }, { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 });
+        };
+
+        window.stopSession = async () => {
+            try {
+                await fetch(state.apiUrl + "/api/session/stop", {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ teacher_id: state.username })
+                });
+                state.activeSession = null;
+                renderApp();
+            } catch(e) { alert("Failed to stop session: " + e); }
+        };
+
+        window.loadAttendance = async () => {
+            if (!state.activeSession) { state.attendanceList = []; return; }
+            try {
+                const res = await fetch(state.apiUrl + "/api/attendance");
+                const data = await res.json();
+                state.attendanceList = data.records;
+                if (state.currentView !== 'verify') renderApp();
+            } catch(e) {}
+        };
+
+        window.loadAttendanceHistory = async () => {
+            try {
+                const res = await fetch(`${state.apiUrl}/api/attendance/history/${state.username}`);
+                const data = await res.json();
+                state.attendanceHistory = data.records;
+                renderApp();
+            } catch(e) {}
+        };
+
+        window.loadTeachers = async () => {
+            try {
+                const res = await fetch(state.apiUrl + "/api/teachers");
+                const data = await res.json();
+                state.teachers = data.teachers;
+                if (state.currentView === 'dashboard' && state.role === 'STUDENT' && !state.mentor) renderApp();
+            } catch(e) {}
+        };
+
+        window.updateMentor = async () => {
+            const select = document.getElementById('mentor-select');
+            if (!select.value) return alert("Please select a mentor first.");
+            
+            const mentorName = select.options[select.selectedIndex].text;
+            try {
+                const res = await fetch(state.apiUrl + "/api/update-mentor", {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ student_id: state.username, mentor: mentorName })
+                });
+                if (res.ok) {
+                    state.mentor = mentorName;
+                    saveSession();
+                    renderApp();
+                }
+            } catch(e) { alert("Failed to save mentor."); }
+        };
+
+        window.changeMentor = () => {
+            state.mentor = '';
+            saveSession();
+            renderApp();
+        };
+
+        window.loadStudents = async () => {
+            try {
+                const res = await fetch(state.apiUrl + "/api/students");
+                const data = await res.json();
+                state.studentsList = data.students;
+                renderApp();
+            } catch(e) {}
+        };
+
+        window.loadVoiceUrls = async () => {
+            try {
+                const res = await fetch(`${state.apiUrl}/api/voice-urls/${state.username}`);
+                const data = await res.json();
+                if (data.status === 'success') {
+                    state.voiceUrls = data.urls;
+                    renderApp();
+                }
+            } catch(e) {}
+        };
+
+        window.updateAttendance = async (student_id, status) => {
+            try {
+                await fetch(state.apiUrl + "/api/attendance/update", {
+                    method: 'POST', headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({student_id, status})
+                });
+                loadAttendance();
+            } catch(e) { alert("Failed to update status: " + e); }
+        };
+
+        window.navigate = (view) => {
+            state.currentView = view;
+            if (view === 'enroll') state.enrollStep = 1;
+            if (view === 'approve') loadAttendance();
+            if (view === 'students') loadStudents();
+            if (view === 'dashboard' && state.role === 'STUDENT') loadAttendanceHistory();
+            saveSession();
+            renderApp();
+        };
+
+        window.exportCSV = () => {
+            window.location.href = `${state.apiUrl}/api/export-csv`;
+        };
+
+        window.logout = () => {
+            if (window.refreshInterval) { clearInterval(window.refreshInterval); window.refreshInterval = null; }
+            localStorage.removeItem('voice_app_state');
+            location.reload();
+        };
+
+        window.deleteVoice = async () => {
+            if (confirm("Are you sure you want to delete your enrolled voice signature?")) {
+                try {
+                    await fetch(`${state.apiUrl}/api/voice/${state.username}`, { method: 'DELETE' });
+                    state.voiceEnrolled = false;
+                    state.voiceUrls = {};
+                    saveSession();
+                    renderApp();
+                    alert("Voice profile deleted successfully.");
+                } catch(e) { alert("Failed to delete voice."); }
+            }
+        };
+
+        // --- AUDIO CONTROLS ---
+        window.toggleAudioPlayback = (phraseId) => {
+            const audio = document.getElementById(`audio-${phraseId}`);
+            const btn = document.getElementById(`play-btn-${phraseId}`);
+            if (audio.paused) {
+                btn.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i>`;
+                if (window.lucide) window.lucide.createIcons();
+                
+                audio.play().then(() => {
+                    btn.innerHTML = `<i data-lucide="square" class="w-4 h-4"></i>`;
+                    if (window.lucide) window.lucide.createIcons();
+                }).catch(err => {
+                    console.error("Audio playback failed", err);
+                    alert("Audio could not be loaded. If you enrolled your voice on an older version of the system, please click 'Re-Enroll Voice' to re-record them into the new secure cloud storage.");
+                    btn.innerHTML = `<i data-lucide="play" class="w-4 h-4"></i>`;
+                    if (window.lucide) window.lucide.createIcons();
+                });
+            } else {
+                audio.pause();
+                btn.innerHTML = `<i data-lucide="play" class="w-4 h-4"></i>`;
+                if (window.lucide) window.lucide.createIcons();
+            }
+        };
+        window.updateAudioSlider = (phraseId) => {
+            const audio = document.getElementById(`audio-${phraseId}`);
+            const slider = document.getElementById(`slider-${phraseId}`);
+            if (audio.duration) {
+                slider.value = (audio.currentTime / audio.duration) * 100;
+            }
+        };
+        window.audioEnded = (phraseId) => {
+            document.getElementById(`slider-${phraseId}`).value = 0;
+            const btn = document.getElementById(`play-btn-${phraseId}`);
+            btn.innerHTML = `<i data-lucide="play" class="w-4 h-4"></i>`;
+            if (window.lucide) window.lucide.createIcons();
+        };
+
+        // --- ENROLLMENT LOGIC ---
+        let enrollMediaRecorder;
+        let enrollAudioChunks = [];
+
+        window.toggleEnrollRecord = async () => {
+            const btn = document.getElementById('record-btn');
+            if (!enrollMediaRecorder || enrollMediaRecorder.state === 'inactive') {
+                try {
+                    btn.innerHTML = `<i data-lucide="loader-2" class="w-6 h-6 text-white animate-spin"></i>`;
+                    if (window.lucide) window.lucide.createIcons();
+                    
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    enrollMediaRecorder = new MediaRecorder(stream);
+                    enrollMediaRecorder.ondataavailable = event => enrollAudioChunks.push(event.data);
+                    
+                    enrollMediaRecorder.onstop = async () => {
+                        const file = new File([new Blob(enrollAudioChunks, { type: 'audio/webm' })], "voice.webm", { type: 'audio/webm' });
+                        const formData = new FormData();
+                        formData.append("audio_file", file);
+                        formData.append("student_id", state.username);
+                        formData.append("step", state.enrollStep);
+
+                        document.getElementById('record-btn').innerHTML = `<i data-lucide="loader-2" class="w-6 h-6 text-white animate-spin"></i>`;
+                        try {
+                            const res = await fetch(state.apiUrl + "/api/enroll-voice-step", { method: 'POST', body: formData });
+                            const result = await res.json();
+                            
+                            if (result.status === "success") {
+                                if (state.enrollStep < 3) {
+                                    state.enrollStep++;
+                                    state.recording = false;
+                                    renderApp();
+                                } else {
+                                    state.voiceEnrolled = true;
+                                    state.enrollStep = 4;
+                                    saveSession();
+                                    loadVoiceUrls();
+                                    btn.innerHTML = `<i data-lucide="mic" class="w-[18px]"></i> Start Recording`;
+                                    if (window.lucide) window.lucide.createIcons();
+                                }
+                            } else {
+                                alert("Enrollment failed: " + (result.detail || result.message));
+                                btn.innerHTML = `<i data-lucide="mic" class="w-[18px]"></i> Start Recording`;
+                                if (window.lucide) window.lucide.createIcons();
+                            }
+                        } catch (err) { 
+                            alert("API Error: " + err.message); 
+                            btn.innerHTML = `<i data-lucide="mic" class="w-[18px]"></i> Start Recording`;
+                            if (window.lucide) window.lucide.createIcons();
+                        }
+                    };
+
+                    enrollAudioChunks = [];
+                    enrollMediaRecorder.start();
+                    state.recording = true;
+                    btn.innerHTML = `<i data-lucide="square" class="w-6 h-6 text-white animate-pulse"></i>`;
+                    if (window.lucide) window.lucide.createIcons();
+                    renderApp();
+                } catch (err) { 
+                    alert("Microphone Error: " + err.name + " - " + err.message);
+                    btn.innerHTML = `<i data-lucide="mic" class="w-[18px]"></i> Start Recording`;
+                    if (window.lucide) window.lucide.createIcons();
+                }
+            } else {
+                enrollMediaRecorder.stop();
+                enrollMediaRecorder.stream.getTracks().forEach(track => track.stop());
+                const btn = document.getElementById('record-btn');
+                btn.innerHTML = `<i data-lucide="loader-2" class="w-6 h-6 text-white animate-spin"></i>`;
+                if (window.lucide) window.lucide.createIcons();
+            }
+        };
+
+        // --- VERIFY LOGIC ---
+        let verifyMediaRecorder;
+        let verifyChunks = [];
+        window.lastConfidence = 0.0;
+
+        window.verifyVoiceReal = async () => {
+            const btn = document.getElementById('verify-btn');
+            if (!verifyMediaRecorder || verifyMediaRecorder.state === 'inactive') {
+                try {
+                    btn.innerHTML = `<i data-lucide="loader-2" class="w-[18px] animate-spin"></i> Preparing...`;
+                    if (window.lucide) window.lucide.createIcons();
+
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    verifyMediaRecorder = new MediaRecorder(stream);
+                    verifyMediaRecorder.ondataavailable = e => verifyChunks.push(e.data);
+                    verifyMediaRecorder.onstop = async () => {
+                        const file = new File([new Blob(verifyChunks, { type: 'audio/webm' })], "voice.webm", { type: 'audio/webm' });
+                        const btn = document.getElementById('verify-btn');
+                        btn.innerHTML = `<i data-lucide="loader-2" class="w-[18px] animate-spin"></i> Analyzing...`;
+                        btn.className = "w-full bg-primary-600 text-white font-semibold py-4 px-8 rounded-xl flex items-center justify-center gap-2 mb-4 cursor-not-allowed opacity-80";
+                        
+                        const fd = new FormData();
+                        fd.append("audio_file", file);
+                        fd.append("student_id", state.username);
+                        try {
+                            const res = await fetch(state.apiUrl + "/api/verify-voice", { method: 'POST', body: fd });
+                            const result = await res.json();
+                            if (result.status === 'success') {
+                                btn.innerHTML = `<i data-lucide="check" class="w-[18px]"></i> Retest Voice`;
+                                btn.className = "w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-4 px-8 rounded-xl flex items-center justify-center gap-2 mb-4";
+                                document.getElementById('verify-results').classList.remove('hidden');
+                                document.getElementById('verify-results').classList.add('flex');
+                                document.getElementById('verify-confidence').innerText = (result.confidence * 100).toFixed(1) + '%';
+                                window.lastConfidence = result.confidence;
+                                document.getElementById('step-2-container').classList.remove('hidden');
+                                document.getElementById('step-2-container').classList.add('flex');
+                            } else {
+                                alert("Voice match failed! " + (result.message || result.detail || "Try again."));
+                                btn.innerHTML = `<i data-lucide="mic" class="w-[18px]"></i> Start Voice Test`;
+                                btn.className = "w-full bg-primary-600 hover:bg-primary-500 text-white font-semibold py-4 px-8 rounded-xl flex items-center justify-center gap-2 mb-4";
+                            }
+                        } catch (err) { 
+                            alert("API connection failed. " + err.message); 
+                            btn.innerHTML = `<i data-lucide="mic" class="w-[18px]"></i> Start Voice Test`;
+                            btn.className = "w-full bg-primary-600 hover:bg-primary-500 text-white font-semibold py-4 px-8 rounded-xl flex items-center justify-center gap-2 mb-4";
+                            if (window.lucide) window.lucide.createIcons();
+                        }
+                    };
+                    verifyChunks = [];
+                    verifyMediaRecorder.start();
+                    btn.innerHTML = `<i data-lucide="square" class="w-[18px]"></i> Stop Recording`;
+                    btn.className = "w-full bg-red-600 hover:bg-red-500 text-white font-semibold py-4 px-8 rounded-xl flex items-center justify-center gap-2 mb-4 animate-pulse";
+                    if (window.lucide) window.lucide.createIcons();
+                } catch (err) { 
+                    alert("Microphone Error: " + err.name + " - " + err.message);
+                    btn.innerHTML = `<i data-lucide="mic" class="w-[18px]"></i> Start Voice Test`;
+                    if (window.lucide) window.lucide.createIcons();
+                }
+            } else {
+                verifyMediaRecorder.stop();
+                verifyMediaRecorder.stream.getTracks().forEach(t => t.stop());
+            }
+        };
+
+        window.markAttendanceFinal = () => {
+            const btn = document.getElementById('mark-btn');
+            const orig = btn.innerHTML;
+            btn.innerHTML = `<i data-lucide="loader-2" class="w-[18px] animate-spin"></i> Locating...`;
+            navigator.geolocation.getCurrentPosition(async (pos) => {
+                try {
+                    const res = await fetch(state.apiUrl + "/api/mark-attendance", {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ student_id: state.username, lat: pos.coords.latitude, lng: pos.coords.longitude, confidence: window.lastConfidence })
+                    });
+                    const result = await res.json();
+                    if (res.ok && result.status === 'success') {
+                        alert(result.message); // Will notify if LATE
+                        navigate('dashboard');
+                    } else { alert("Failed: " + (result.detail || result.message)); btn.innerHTML = orig; }
+                } catch(e) { alert("API Error: " + e.message); btn.innerHTML = orig; }
+            }, (err) => { 
+                alert("Geolocation error: " + err.message + ". Please enable GPS and allow location access to mark attendance."); 
+                btn.innerHTML = orig; 
+            }, { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 });
+        };
+
+        window.onload = () => {
+            if (state.currentView !== 'login' && state.username) {
+                if (state.role === 'TEACHER') {
+                    checkActiveSession();
+                    if (!window.refreshInterval) window.refreshInterval = setInterval(() => { checkActiveSession(); loadAttendance(); }, 5000);
+                } else {
+                    loadTeachers();
+                    loadAttendanceHistory();
+                    if (state.voiceEnrolled) loadVoiceUrls();
+                }
+            }
+            renderApp();
+        };
+    </script>
+</body>
+</html>

@@ -1,0 +1,176 @@
+path,speaker,sample_rate,duration_sec,rms,clipping_ratio,silence_ratio
+data/raw/shehruz/1.ogg,shehruz,48000,2.018,0.034967,0.0,0.27
+data/raw/shehruz/4.ogg,shehruz,48000,2.438,0.039337,0.0,0.429752
+data/raw/shehruz/6.ogg,shehruz,48000,2.878,0.055823,0.0,0.328671
+data/raw/shehruz/2.ogg,shehruz,48000,4.078,0.045167,0.0,0.216749
+data/raw/shehruz/5.ogg,shehruz,48000,2.158,0.044558,0.0,0.411215
+data/raw/shehruz/3.ogg,shehruz,48000,2.178,0.058859,0.0,0.425926
+data/raw/shehruz/7.ogg,shehruz,48000,2.478,0.023706,0.0,0.430894
+data/raw/vyshnav v/1.ogg,vyshnav v,48000,2.413,0.107743,0.0,0.116667
+data/raw/vyshnav v/4.ogg,vyshnav v,48000,2.873,0.106349,0.000123,0.244755
+data/raw/vyshnav v/6.ogg,vyshnav v,48000,2.693,0.118301,0.0,0.141791
+data/raw/vyshnav v/2.ogg,vyshnav v,48000,2.413,0.107743,0.0,0.116667
+data/raw/vyshnav v/5.ogg,vyshnav v,48000,1.933,0.131634,0.0,0.229167
+data/raw/vyshnav v/3.ogg,vyshnav v,48000,4.994,0.122281,0.000342,0.104418
+data/raw/vyshnav v/7.ogg,vyshnav v,48000,1.833,0.096461,0.0,0.164835
+data/raw/arya/1.ogg,arya,48000,1.518,0.010283,0.0,0.573333
+data/raw/arya/4.ogg,arya,48000,2.298,0.014798,0.0,0.54386
+data/raw/arya/6.ogg,arya,48000,5.018,0.017189,0.0,0.704
+data/raw/arya/2.ogg,arya,48000,4.178,0.01666,0.0,0.466346
+data/raw/arya/5.ogg,arya,48000,1.598,0.014595,0.0,0.64557
+data/raw/arya/3.ogg,arya,48000,1.638,0.020395,0.0,0.518519
+data/raw/arya/7.ogg,arya,48000,2.118,0.005846,0.0,0.933333
+data/raw/siva/1.ogg,siva,48000,2.878,0.051368,0.0,0.559441
+data/raw/siva/4.ogg,siva,48000,3.318,0.071263,0.0,0.557576
+data/raw/siva/6.ogg,siva,48000,3.098,0.119321,0.0,0.61039
+data/raw/siva/2.ogg,siva,48000,3.738,0.083966,0.0,0.370968
+data/raw/siva/5.ogg,siva,48000,2.878,0.063048,0.0,0.678322
+data/raw/siva/3.ogg,siva,48000,3.118,0.05722,0.0,0.677419
+data/raw/siva/7.ogg,siva,48000,2.538,0.061892,0.0,0.84127
+data/raw/devanand/1.ogg,devanand,48000,1.918,0.021431,0.0,0.515789
+data/raw/devanand/4.ogg,devanand,48000,1.578,0.010755,0.0,0.692308
+data/raw/devanand/6.ogg,devanand,48000,1.958,0.009681,0.0,0.752577
+data/raw/devanand/2.ogg,devanand,48000,2.858,0.011102,0.0,0.598592
+data/raw/devanand/5.ogg,devanand,48000,0.978,0.006974,0.0,0.75
+data/raw/devanand/3.ogg,devanand,48000,1.698,0.011533,0.0,0.690476
+data/raw/devanand/7.ogg,devanand,48000,0.998,0.012254,0.0,0.795918
+data/raw/soorajshaju/1.ogg,soorajshaju,48000,2.618,0.038057,0.0,0.546154
+data/raw/soorajshaju/4.ogg,soorajshaju,48000,2.038,0.02901,0.0,0.544554
+data/raw/soorajshaju/6.ogg,soorajshaju,48000,1.138,0.010622,0.0,0.803571
+data/raw/soorajshaju/2.ogg,soorajshaju,48000,3.658,0.036405,0.0,0.483516
+data/raw/soorajshaju/5.ogg,soorajshaju,48000,1.078,0.008995,0.0,0.886792
+data/raw/soorajshaju/3.ogg,soorajshaju,48000,1.778,0.03433,0.0,0.522727
+data/raw/soorajshaju/7.ogg,soorajshaju,48000,2.198,0.04325,0.0,0.541284
+data/raw/varsha/1.ogg,varsha,48000,2.158,0.068792,0.0,0.448598
+data/raw/varsha/4.ogg,varsha,48000,3.078,0.06025,0.0,0.575163
+data/raw/varsha/6.ogg,varsha,48000,3.018,0.062806,0.0,0.52
+data/raw/varsha/2.ogg,varsha,48000,3.618,0.058463,0.0,0.388889
+data/raw/varsha/5.ogg,varsha,48000,2.238,0.052832,0.0,0.585586
+data/raw/varsha/3.ogg,varsha,48000,2.418,0.055255,0.0,0.608333
+data/raw/varsha/7.ogg,varsha,48000,2.138,0.048258,0.0,0.839623
+data/raw/aravind/1.ogg,aravind,48000,2.04,0.075997,0.0,0.333333
+data/raw/aravind/4.ogg,aravind,48000,1.96,0.094483,0.0,0.173469
+data/raw/aravind/6.ogg,aravind,48000,1.4,0.111628,7.4e-05,0.371429
+data/raw/aravind/2.ogg,aravind,48000,3.16,0.109662,7e-06,0.126582
+data/raw/aravind/5.ogg,aravind,48000,1.4,0.111628,7.4e-05,0.371429
+data/raw/aravind/3.ogg,aravind,48000,1.4,0.149272,0.0,0.1
+data/raw/aravind/7.ogg,aravind,48000,1.22,0.081533,0.0,0.409836
+data/raw/shadhiya/1.ogg,shadhiya,48000,5.338,0.005989,0.0,0.868421
+data/raw/shadhiya/4.ogg,shadhiya,48000,4.798,0.008806,0.0,0.774059
+data/raw/shadhiya/6.ogg,shadhiya,48000,6.198,0.009009,0.0,0.805825
+data/raw/shadhiya/2.ogg,shadhiya,48000,6.078,0.008039,0.0,0.80198
+data/raw/shadhiya/5.ogg,shadhiya,48000,3.858,0.003005,0.0,0.973958
+data/raw/shadhiya/3.ogg,shadhiya,48000,5.278,0.008588,0.0,0.840304
+data/raw/shadhiya/7.ogg,shadhiya,48000,4.098,0.054233,0.002339,0.941176
+data/raw/sooraj pn/1.ogg,sooraj pn,48000,2.478,0.168798,0.000109,0.463415
+data/raw/sooraj pn/4.ogg,sooraj pn,48000,2.718,0.120456,3.1e-05,0.503704
+data/raw/sooraj pn/6.ogg,sooraj pn,48000,2.658,0.15122,0.002399,0.515152
+data/raw/sooraj pn/2.ogg,sooraj pn,48000,3.298,0.102626,4.4e-05,0.365854
+data/raw/sooraj pn/5.ogg,sooraj pn,48000,1.978,0.117699,4.2e-05,0.622449
+data/raw/sooraj pn/3.ogg,sooraj pn,48000,1.838,0.131443,4.5e-05,0.428571
+data/raw/sooraj pn/7.ogg,sooraj pn,48000,1.218,0.058688,0.0,0.7
+data/raw/sreelakshmi/1.ogg,sreelakshmi,48000,3.018,0.118769,0.0,0.34
+data/raw/sreelakshmi/4.ogg,sreelakshmi,48000,2.658,0.112268,0.0,0.44697
+data/raw/sreelakshmi/6.ogg,sreelakshmi,48000,2.158,0.102399,0.0,0.476636
+data/raw/sreelakshmi/2.ogg,sreelakshmi,48000,4.418,0.101865,0.0,0.236364
+data/raw/sreelakshmi/5.ogg,sreelakshmi,48000,2.798,0.132504,0.0,0.338129
+data/raw/sreelakshmi/3.ogg,sreelakshmi,48000,2.738,0.136739,0.0,0.323529
+data/raw/sreelakshmi/7.ogg,sreelakshmi,48000,2.218,0.103538,0.0,0.318182
+data/raw/afeela/1.ogg,afeela,48000,2.918,0.202216,0.0,0.075862
+data/raw/afeela/4.ogg,afeela,48000,2.198,0.187882,0.0,0.091743
+data/raw/afeela/6.ogg,afeela,48000,1.938,0.216504,0.0,0.083333
+data/raw/afeela/2.ogg,afeela,48000,3.478,0.20425,0.0,0.057803
+data/raw/afeela/5.ogg,afeela,48000,1.498,0.194501,0.0,0.148649
+data/raw/afeela/3.ogg,afeela,48000,1.838,0.164827,3.4e-05,0.175824
+data/raw/afeela/7.ogg,afeela,48000,1.038,0.199449,0.0,0.137255
+data/raw/ardra/1.ogg,ardra,48000,3.898,0.009224,0.0,0.78866
+data/raw/ardra/4.ogg,ardra,48000,3.158,0.018505,0.0,0.694268
+data/raw/ardra/6.ogg,ardra,48000,3.478,0.010783,0.0,0.745665
+data/raw/ardra/2.ogg,ardra,48000,4.898,0.016867,0.0,0.614754
+data/raw/ardra/5.ogg,ardra,48000,2.718,0.011441,0.0,0.82963
+data/raw/ardra/3.ogg,ardra,48000,2.998,0.014551,0.0,0.731544
+data/raw/ardra/7.ogg,ardra,48000,2.158,0.007843,0.0,0.878505
+data/raw/nandhana/1.ogg,nandhana,48000,1.438,0.043001,0.0,0.295775
+data/raw/nandhana/4.ogg,nandhana,48000,1.518,0.048611,0.0,0.28
+data/raw/nandhana/6.ogg,nandhana,48000,2.598,0.036777,0.0,0.573643
+data/raw/nandhana/2.ogg,nandhana,48000,2.958,0.048163,0.0,0.272109
+data/raw/nandhana/5.ogg,nandhana,48000,1.938,0.043654,0.0,0.645833
+data/raw/nandhana/3.ogg,nandhana,48000,1.358,0.045393,0.0,0.41791
+data/raw/nandhana/7.ogg,nandhana,48000,1.798,0.013388,0.0,0.932584
+data/raw/vaishnav sooryanarayan/1.ogg,vaishnav sooryanarayan,48000,2.098,0.031746,0.0,0.317308
+data/raw/vaishnav sooryanarayan/4.ogg,vaishnav sooryanarayan,48000,2.398,0.038773,0.0,0.453782
+data/raw/vaishnav sooryanarayan/6.ogg,vaishnav sooryanarayan,48000,2.298,0.034664,0.0,0.464912
+data/raw/vaishnav sooryanarayan/2.ogg,vaishnav sooryanarayan,48000,3.438,0.036774,0.0,0.368421
+data/raw/vaishnav sooryanarayan/5.ogg,vaishnav sooryanarayan,48000,1.578,0.028643,0.0,0.666667
+data/raw/vaishnav sooryanarayan/3.ogg,vaishnav sooryanarayan,48000,1.898,0.035441,0.0,0.489362
+data/raw/vaishnav sooryanarayan/7.ogg,vaishnav sooryanarayan,48000,1.458,0.019231,0.0,0.805556
+data/raw/navaneed/1.ogg,navaneed,48000,1.798,0.142498,0.0,0.157303
+data/raw/navaneed/4.ogg,navaneed,48000,1.958,0.153694,0.0,0.14433
+data/raw/navaneed/6.ogg,navaneed,48000,1.878,0.155376,0.0,0.172043
+data/raw/navaneed/2.ogg,navaneed,48000,3.418,0.12313,0.0,0.105882
+data/raw/navaneed/5.ogg,navaneed,48000,1.078,0.14005,0.0,0.09434
+data/raw/navaneed/3.ogg,navaneed,48000,1.198,0.196633,0.0,0.118644
+data/raw/navaneed/7.ogg,navaneed,48000,0.898,0.101236,0.0,0.113636
+data/raw/abhijith/1.ogg,abhijith,48000,3.094,0.143608,0.000377,0.279221
+data/raw/abhijith/4.ogg,abhijith,48000,2.873,0.09235,0.0,0.377622
+data/raw/abhijith/6.ogg,abhijith,48000,3.174,0.117934,3.3e-05,0.405063
+data/raw/abhijith/2.ogg,abhijith,48000,4.274,0.101074,3.4e-05,0.361502
+data/raw/abhijith/5.ogg,abhijith,48000,2.913,0.101033,1.4e-05,0.17931
+data/raw/abhijith/3.ogg,abhijith,48000,2.833,0.125365,1.5e-05,0.092199
+data/raw/abhijith/7.ogg,abhijith,48000,2.094,0.103534,4e-05,0.298077
+data/raw/karthik/1.ogg,karthik,48000,2.778,0.037647,0.0,0.5
+data/raw/karthik/4.ogg,karthik,48000,2.898,0.046968,0.0,0.555556
+data/raw/karthik/6.ogg,karthik,48000,2.338,0.055824,0.0,0.594828
+data/raw/karthik/2.ogg,karthik,48000,4.058,0.055225,0.0,0.425743
+data/raw/karthik/5.ogg,karthik,48000,2.398,0.041969,0.0,0.714286
+data/raw/karthik/3.ogg,karthik,48000,2.918,0.048811,0.0,0.62069
+data/raw/karthik/7.ogg,karthik,48000,2.358,0.038477,0.0,0.82906
+data/raw/shibil/1.ogg,shibil,48000,2.154,0.142587,0.000803,0.186916
+data/raw/shibil/4.ogg,shibil,48000,2.174,0.14222,0.000556,0.175926
+data/raw/shibil/6.ogg,shibil,48000,2.554,0.119407,0.0,0.259843
+data/raw/shibil/2.ogg,shibil,48000,3.634,0.121966,6.9e-05,0.077348
+data/raw/shibil/5.ogg,shibil,48000,2.534,0.081092,0.0,0.190476
+data/raw/shibil/3.ogg,shibil,48000,1.853,0.137111,4.5e-05,0.163043
+data/raw/shibil/7.ogg,shibil,48000,1.173,0.109856,0.0,0.5
+data/raw/akshaya/1.ogg,akshaya,48000,1.858,0.081992,0.0,0.521739
+data/raw/akshaya/4.ogg,akshaya,48000,3.278,0.081582,0.0,0.533742
+data/raw/akshaya/6.ogg,akshaya,48000,3.138,0.086003,0.0,0.608974
+data/raw/akshaya/2.ogg,akshaya,48000,4.238,0.072647,2e-05,0.345972
+data/raw/akshaya/5.ogg,akshaya,48000,3.138,0.086003,0.0,0.608974
+data/raw/akshaya/3.ogg,akshaya,48000,2.238,0.094938,0.0,0.477477
+data/raw/akshaya/7.ogg,akshaya,48000,2.578,0.041488,8.9e-05,0.84375
+data/raw/aswin/1.ogg,aswin,48000,2.278,0.09056,0.0,0.477876
+data/raw/aswin/4.ogg,aswin,48000,1.478,0.099783,0.0,0.219178
+data/raw/aswin/6.ogg,aswin,48000,2.398,0.069932,0.0,0.420168
+data/raw/aswin/2.ogg,aswin,48000,3.218,0.101847,0.0,0.15
+data/raw/aswin/5.ogg,aswin,48000,1.598,0.059505,0.0,0.556962
+data/raw/aswin/3.ogg,aswin,48000,1.998,0.05935,0.0,0.555556
+data/raw/aswin/7.ogg,aswin,48000,1.478,0.056139,0.0,0.739726
+data/raw/sreevals/1.ogg,sreevals,48000,3.4,0.045908,0.0,0.541176
+data/raw/sreevals/4.ogg,sreevals,48000,2.72,0.052909,0.0,0.301471
+data/raw/sreevals/6.ogg,sreevals,48000,3.06,0.05708,0.0,0.313725
+data/raw/sreevals/2.ogg,sreevals,48000,5.02,0.04496,0.0,0.442231
+data/raw/sreevals/5.ogg,sreevals,48000,2.38,0.051964,0.0,0.487395
+data/raw/sreevals/3.ogg,sreevals,48000,3.16,0.063646,0.0,0.531646
+data/raw/sreevals/7.ogg,sreevals,48000,2.22,0.040956,0.0,0.351351
+data/raw/fidha/1.ogg,fidha,48000,2.078,0.070158,0.0,0.281553
+data/raw/fidha/4.ogg,fidha,48000,2.438,0.052534,0.0,0.421488
+data/raw/fidha/6.ogg,fidha,48000,3.098,0.057515,0.0,0.461039
+data/raw/fidha/2.ogg,fidha,48000,3.218,0.05948,0.0,0.225
+data/raw/fidha/5.ogg,fidha,48000,1.898,0.05731,0.0,0.595745
+data/raw/fidha/3.ogg,fidha,48000,1.458,0.070715,0.0,0.430556
+data/raw/fidha/7.ogg,fidha,48000,1.898,0.029954,0.0,0.638298
+data/raw/anuvrindha/1.ogg,anuvrindha,48000,2.858,0.082352,0.0,0.380282
+data/raw/anuvrindha/4.ogg,anuvrindha,48000,2.558,0.092497,0.0,0.409449
+data/raw/anuvrindha/6.ogg,anuvrindha,48000,2.678,0.116566,0.0,0.368421
+data/raw/anuvrindha/2.ogg,anuvrindha,48000,4.278,0.087919,0.0,0.300469
+data/raw/anuvrindha/5.ogg,anuvrindha,48000,2.038,0.083501,0.0,0.653465
+data/raw/anuvrindha/3.ogg,anuvrindha,48000,2.558,0.085812,0.0,0.448819
+data/raw/anuvrindha/7.ogg,anuvrindha,48000,1.858,0.070058,0.0,0.706522
+data/raw/jewel/1.ogg,jewel,48000,3.718,0.067959,0.0,0.648649
+data/raw/jewel/4.ogg,jewel,48000,4.038,0.101311,0.0,0.567164
+data/raw/jewel/6.ogg,jewel,48000,3.478,0.111377,0.0,0.543353
+data/raw/jewel/2.ogg,jewel,48000,4.578,0.03431,0.0,0.45614
+data/raw/jewel/5.ogg,jewel,48000,2.898,0.064533,0.0,0.708333
+data/raw/jewel/3.ogg,jewel,48000,2.758,0.101043,0.0,0.547445
+data/raw/jewel/7.ogg,jewel,48000,1.838,0.052286,0.0,0.813187

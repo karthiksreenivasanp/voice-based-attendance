@@ -1,0 +1,6 @@
+firebase-key.json
+data/
+runs/
+models/
+__pycache__/
+*.pyc

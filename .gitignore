@@ -1,0 +1,29 @@
+# Virtual environments
+venv/
+env/
+.env/
+
+# Python caching
+__pycache__/
+*.pyc
+*.pyo
+
+# IDEs
+.vscode/
+.idea/
+
+# Large models and checkpoints
+*.pt
+*.ckpt
+*.bin
+*.npz
+pretrained_models/
+ml_pipeline/work_dir/
+backend/runs/
+
+# Logs
+*.log
+
+# Sensitive
+*.json
+.venv/
