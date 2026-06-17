@@ -342,7 +342,7 @@ def enroll_voice_step(
     audio_file: UploadFile = File(...),
 ):
     """Enroll voice in 3 steps. Step 1/2/3, then combine on step 3."""
-    global voiceprints
+
     if model is None:
         raise HTTPException(status_code=503, detail="Model not loaded.")
     if step not in (1, 2, 3):
@@ -419,7 +419,7 @@ def enroll_voice_step(
 @app.delete("/api/voice/{student_id}")
 def delete_voice(student_id: str):
     """Delete voice enrollment from Firebase. Keeps Drive data for audit."""
-    global voiceprints
+
     doc = db.collection("users").document(student_id).get()
     if not doc.exists:
         raise HTTPException(status_code=404, detail="User not found.")
