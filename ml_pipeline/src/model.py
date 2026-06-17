@@ -67,5 +67,5 @@ def load_checkpoint(path: str, device: torch.device) -> Tuple[SpeakerModel, Dict
         n_mels=config["n_mels"],
         embedding_dim=config["embedding_dim"],
     ).to(device)
-    model.load_state_dict(ckpt["model_state"])
+    model.load_state_dict(ckpt["model_state"], strict=False)
     return model, ckpt["speaker_to_label"], config
