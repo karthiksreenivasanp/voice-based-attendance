@@ -171,7 +171,7 @@ def embedding_to_csv_row(emb: np.ndarray, row_type: str) -> dict:
 
 @app.on_event("startup")
 def startup_event():
-    global model, voiceprints, config, device, model_error_msg
+    global model, voiceprints, config, device
     init_db()
     print("Loading model and voiceprints...")
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")

@@ -171,7 +171,7 @@ def embedding_to_csv_row(emb: np.ndarray, row_type: str) -> dict:
 
 @app.on_event("startup")
 def startup_event():
-    global model, voiceprints, config, device, model_error_msg
+    global model, voiceprints, config, device
     init_db()
     print("Loading model and voiceprints...")
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -714,3 +714,7 @@ def get_voice_urls(student_id: str):
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("api:app", host="0.0.0.0", port=8001, reload=True)
+
+@app.get("/api/debug_model")
+def debug_model():
+    return {"model_is_none": model is None}
