@@ -1,0 +1,80 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.9"
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install flake8
+        # We only check backend requirements syntax here
+        if [ -f backend/requirements.txt ]; then pip install -r backend/requirements.txt; fi
+        
+    - name: Lint with flake8
+      run: |
+        # stop the build if there are Python syntax errors or undefined names
+        flake8 backend/ ml_pipeline/ --count --select=E9,F63,F7,F82 --show-source --statistics
+        # exit-zero treats all errors as warnings.
+        flake8 backend/ ml_pipeline/ --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+
+  deploy-to-hf:
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.9"
+        
+    - name: Prepare Deployment Directory
+      run: |
+        mkdir -p hf_deploy
+        cp -r backend/* hf_deploy/
+        mkdir -p hf_deploy/ml_pipeline/work_dir
+        # Copy models if they exist in the repo (they might be ignored by gitignore though)
+        if [ -f ml_pipeline/work_dir/best.pt ]; then cp ml_pipeline/work_dir/best.pt hf_deploy/ml_pipeline/work_dir/; fi
+        
+    - name: Install huggingface_hub
+      run: pip install huggingface_hub
+      
+    - name: Upload to Hugging Face Spaces
+      env:
+        HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      run: |
+        python -c "
+        import os
+        from huggingface_hub import HfApi
+        api = HfApi()
+        token = os.environ.get('HF_TOKEN')
+        if token:
+            print('HF_TOKEN found, uploading to Space...')
+            api.upload_folder(
+                folder_path='hf_deploy',
+                repo_id='karthiksreenivasanp/backend-finetuned-ECAPA',
+                repo_type='space',
+                token=token,
+                ignore_patterns=['.git/*']
+            )
+        else:
+            print('Skipping Hugging Face deployment because HF_TOKEN secret is not set in GitHub.')
+        "
