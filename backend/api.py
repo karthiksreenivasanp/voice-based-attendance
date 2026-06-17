@@ -342,6 +342,7 @@ def enroll_voice_step(
     audio_file: UploadFile = File(...),
 ):
     """Enroll voice in 3 steps. Step 1/2/3, then combine on step 3."""
+    global voiceprints
 
     if model is None:
         raise HTTPException(status_code=503, detail="Model not loaded.")
