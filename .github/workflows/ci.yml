@@ -50,6 +50,7 @@ jobs:
       run: |
         mkdir -p hf_deploy
         cp -r backend/* hf_deploy/
+        cp -r ml_pipeline/src hf_deploy/src
         mkdir -p hf_deploy/ml_pipeline/work_dir
         # Copy models if they exist in the repo (they might be ignored by gitignore though)
         if [ -f ml_pipeline/work_dir/best.pt ]; then cp ml_pipeline/work_dir/best.pt hf_deploy/ml_pipeline/work_dir/; fi
