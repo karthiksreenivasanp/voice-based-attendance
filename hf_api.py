@@ -225,8 +225,11 @@ def startup_event():
     try:
         for doc in db.collection("users").stream():
             data = doc.to_dict()
+            embs_dict = data.get("voice_embeddings_dict")
             embs = data.get("voice_embeddings")
-            if embs:
+            if embs_dict:
+                voiceprints[doc.id] = [np.array(e, dtype=np.float32) for e in embs_dict.values()]
+            elif embs:
                 voiceprints[doc.id] = [np.array(e, dtype=np.float32) for e in embs]
             else:
                 emb = data.get("voice_embedding")
@@ -460,7 +463,11 @@ def enroll_voice_step(
     # Save permanently to Firebase
     db.collection("users").document(student_id).set({
         "voice_enrolled": True,
-        "voice_embeddings": [e.tolist() for e in all_embeddings],
+        "voice_embeddings_dict": {
+            "phrase_1": all_embeddings[0].tolist(),
+            "phrase_2": all_embeddings[1].tolist(),
+            "phrase_3": all_embeddings[2].tolist(),
+        },
         "voice_embedding": combined.tolist(), # Fallback
     }, merge=True)
 
