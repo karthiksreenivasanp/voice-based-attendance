@@ -560,10 +560,17 @@ def verify_voice(student_id: str = Form(...), audio_file: UploadFile = File(...)
         _, score = max(scores.items(), key=lambda x: x[1])
 
     is_match = bool(score >= VOICE_MATCH_THRESHOLD)
+    
+    # Scale score for UI presentation (Raw 0.40 -> 80% UI Confidence)
+    if is_match:
+        display_score = 0.80 + ((score - VOICE_MATCH_THRESHOLD) / (1.0 - VOICE_MATCH_THRESHOLD)) * 0.19
+    else:
+        display_score = (score / VOICE_MATCH_THRESHOLD) * 0.79
+        
     return {
         "status": "success" if is_match else "failed",
         "message": "Identity verified" if is_match else "Identity could not be verified",
-        "confidence": float(score),
+        "confidence": float(display_score),
     }
 
 
