@@ -187,7 +187,7 @@ def embedding_to_csv_row(emb: np.ndarray, row_type: str) -> dict:
 
 @app.on_event("startup")
 def startup_event():
-    global model, voiceprints, config, device
+    global model, voiceprints, config, device, model_error_msg
     init_db()
     print("Loading model and voiceprints...")
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -211,7 +211,12 @@ def startup_event():
     voiceprints = {}
     try:
         vp = np.load("models/voiceprints_tuned.npz")
-        voiceprints = {k: vp[k] for k in vp.files}
+        for k in vp.files:
+            arr = vp[k]
+            if len(arr.shape) > 1:
+                voiceprints[k] = [arr[i] for i in range(arr.shape[0])]
+            else:
+                voiceprints[k] = arr
         print(f"Loaded {len(voiceprints)} voiceprints from local file.")
     except Exception as e:
         print(f"No local voiceprints file: {e}")
@@ -220,8 +225,13 @@ def startup_event():
     try:
         for doc in db.collection("users").stream():
             data = doc.to_dict()
-            if data.get("voice_embedding"):
-                voiceprints[doc.id] = np.array(data["voice_embedding"], dtype=np.float32)
+            embs = data.get("voice_embeddings")
+            if embs:
+                voiceprints[doc.id] = [np.array(e, dtype=np.float32) for e in embs]
+            else:
+                emb = data.get("voice_embedding")
+                if emb:
+                    voiceprints[doc.id] = np.array(emb, dtype=np.float32)
         print(f"Total voiceprints loaded: {len(voiceprints)}")
     except Exception as e:
         model_error_msg = f"Error loading from Firebase: {e}"
@@ -428,22 +438,30 @@ def enroll_voice_step(
     emb2 = enrollment_cache[student_id][2]
     emb3 = enrollment_cache[student_id][3]
     combined = np.mean(np.stack([emb1, emb2, emb3], axis=0), axis=0)
+    all_embeddings = [emb1, emb2, emb3]
 
-    # Save combined voiceprint to memory
+    # Save to memory
     if voiceprints is None:
         voiceprints = {}
-    voiceprints[student_id] = combined
+    voiceprints[student_id] = all_embeddings
 
     # Save to local npz as backup
     try:
-        np.savez("models/voiceprints_tuned.npz", **voiceprints)
+        save_dict = {}
+        for k, v in voiceprints.items():
+            if isinstance(v, list):
+                save_dict[k] = np.stack(v, axis=0)
+            else:
+                save_dict[k] = v
+        np.savez("models/voiceprints_tuned.npz", **save_dict)
     except Exception:
         pass
 
     # Save permanently to Firebase
     db.collection("users").document(student_id).set({
         "voice_enrolled": True,
-        "voice_embedding": combined.tolist(),
+        "voice_embeddings": [e.tolist() for e in all_embeddings],
+        "voice_embedding": combined.tolist(), # Fallback
     }, merge=True)
 
     # Upload to Firestore (non-blocking, best-effort)
@@ -525,9 +543,18 @@ def verify_voice(student_id: str = Form(...), audio_file: UploadFile = File(...)
         print(f"Drive upload failed: {e}")
 
     if student_id in voiceprints:
-        score = cosine(emb, voiceprints[student_id])
+        target = voiceprints[student_id]
+        if isinstance(target, list):
+            score = max(cosine(emb, e) for e in target)
+        else:
+            score = cosine(emb, target)
     else:
-        scores = {spk: cosine(emb, e) for spk, e in voiceprints.items()}
+        scores = {}
+        for spk, target in voiceprints.items():
+            if isinstance(target, list):
+                scores[spk] = max(cosine(emb, e) for e in target)
+            else:
+                scores[spk] = cosine(emb, target)
         if not scores:
             raise HTTPException(status_code=400, detail="No voiceprints enrolled.")
         _, score = max(scores.items(), key=lambda x: x[1])
